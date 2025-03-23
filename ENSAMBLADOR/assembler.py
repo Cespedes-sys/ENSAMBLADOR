@@ -1,3 +1,4 @@
+import os
 import sys
 from parser import InstructionParser
 
@@ -60,7 +61,10 @@ def process_file(input_file, output_file):
             
             address_counter += 4  # Sumar 4 a la dirección actual
 
+
+
 if __name__ == "__main__":
-    input_filename = "prog1.asm"
-    output_filename = "prog1.bin"
+    input_filename = os.path.join(os.getcwd(), "prog1.asm")  # Ruta absoluta
+    output_filename = os.path.join(os.getcwd(), "prog1.bin")  # Ruta absoluta
+
     process_file(input_filename, output_filename)

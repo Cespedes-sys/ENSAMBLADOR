@@ -1,33 +1,40 @@
-MAIN:                   
-    add x1, x2, x3        # Tipo R: Suma x1 = x2 + x3
-    sub x4, x5, x6        # Tipo R: Resta x4 = x5 - x6
-    and x7, x8, x9        # Tipo R: AND lógico
+_start:
+    # Load constants using basic instructions (no li)
+    addi t0, zero, 50    # t0 = S (number to compute sqrt)
+    addi t1, zero, 10    # t1 = x (initial guess)
+    addi t2, zero, 1     # t2 = tol (tolerance)
 
-    addi x10, x1, 10      # Tipo I: Suma inmediata x10 = x1 + 10
-    jalr x12, 0(x1)       # Tipo I: Salto a la dirección en x1
+newton_raphson:
+    # Compute S / x_n using successive subtraction
+    add t3, zero, zero   # t3 = quotient (S / x_n)
+    add t4, t0, zero     # t4 = copy of S
 
-    lw x13, 20(x2)        # Tipo I (Load): Carga palabra desde memoria
-    sw x14, 24(x3)        # Tipo S: Guarda palabra en memoria
+div_loop:
+    blt t4, t1, div_done # If remainder < divisor, stop
+    sub t4, t4, t1       # t4 -= x_n
+    addi t3, t3, 1       # quotient += 1
+    j div_loop
+div_done:
 
-    beq x2, x2, label     # Tipo B: Salto condicional (si x2 == x2, salta a label)
-    bne x4, x5, label2    # Tipo B: Salto si x4 != x5
+    # Compute (x_n + S / x_n)
+    add t5, t1, t3       # t5 = x_n + (S / x_n)
 
-    lui x16, 10000      # Tipo U: Carga inmediato en parte superior
-    auipc x17, 20000    # Tipo U: Carga inmediato + PC
+    # Compute (x_n + S / x_n) / 2 using shift right
+    srli t6, t5, 1       # t6 = (x_n + S / x_n) / 2
 
-    #jal label3              # Tipo J: Salto incondicional (jal sin registrar dirección)
-    jal x1, label4        # Tipo J: Salto y guarda retorno en x1
+    # Compute |x_n+1 - x_n|
+    sub t6, t6, t1       # t6 = x_n+1 - x_n
+    bge t6, zero, positive_diff
+    sub t6, zero, t6     # t6 = -t6 (absolute value)
+positive_diff:
 
-label:                  
-                       # No hace nada (para alineación o espera)
+    blt t6, t2, done     # If |x_n+1 - x_n| < tol, exit
 
-label2:
-    ecall                 # Llamada al sistema
-    ebreak                # Pausa para depuración
+    # Update x_n = x_n+1 and repeat
+    add t1, t6, zero
+    j newton_raphson
 
-label3:
-    sb x18, 32(x3)        # Tipo S: Guarda byte en memoria
-    sh x19, 36(x4)        # Tipo S: Guarda halfword en memoria
-
-label4:
-    slt x20, x21, x22     # Tipo R: x20 = (x21 < x22) ? 1 : 0
+done:
+    # Exit program
+    addi a7, zero, 10
+    ecall

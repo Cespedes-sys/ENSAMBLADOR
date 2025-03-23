@@ -5,13 +5,24 @@ class InstructionEncoder:
         # Cargar las instrucciones desde un archivo JSON
         with open(json_file, 'r') as file:
             self.instructions = json.load(file)
+        
+        # Cargar abi_to_num desde el JSON, si está presente
+        if "abi_to_num" in self.instructions:
+            self.abi_to_num = self.instructions["abi_to_num"]
+        else:
+            raise ValueError("Error: El JSON no contiene el mapeo 'abi_to_num'.")
+        
 
     # Método para convertir los registros de 'x1' a '1', 'x2' a '2', etc.
     def parse_register(self, reg):
-        if reg.startswith('x'):
-            return int(reg[1:])  # extraemos el número del registro, e.g., 'x1' -> 1
+        print(f"Intentando convertir registro: {reg}")
+        if reg in self.abi_to_num:
+            return self.abi_to_num[reg]
+        elif reg.startswith('x'):
+            return int(reg[1:])
         else:
-            raise ValueError(f"Registro inválido: {reg}")
+            raise ValueError(f"Registro desconocido: {reg}")
+
 
     # Codificación tipo R
     def encode_r_type(self, instr, rd, rs1, rs2):

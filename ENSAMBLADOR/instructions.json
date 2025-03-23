@@ -1,4 +1,52 @@
 {
+    "abi_to_num": {
+        "zero": 0, "ra": 1, "sp": 2, "gp": 3, "tp": 4,
+        "t0": 5, "t1": 6, "t2": 7, "t3": 28, "t4": 29, "t5": 30, "t6": 31,
+        "s0": 8, "fp": 8, "s1": 9, "s2": 18, "s3": 19, "s4": 20, "s5": 21,
+        "s6": 22, "s7": 23, "s8": 24, "s9": 25, "s10": 26, "s11": 27,
+        "a0": 10, "a1": 11, "a2": 12, "a3": 13, "a4": 14, "a5": 15, "a6": 16, "a7": 17,
+        "ft0": 0, "ft1": 1, "ft2": 2, "ft3": 3, "ft4": 4, "ft5": 5, "ft6": 6, "ft7": 7,
+        "ft8": 28, "ft9": 29, "ft10": 30, "ft11": 31,
+        "fs0": 8, "fs1": 9, "fs2": 18, "fs3": 19, "fs4": 20, "fs5": 21,
+        "fs6": 22, "fs7": 23, "fs8": 24, "fs9": 25, "fs10": 26, "fs11": 27,
+        "fa0": 10, "fa1": 11, "fa2": 12, "fa3": 13, "fa4": 14, "fa5": 15, "fa6": 16, "fa7": 17
+    },
+    "pseudo_instructions": {
+        "nop": ["addi x0, x0, 0"],
+        "li": ["addi {rd}, x0, {imm}"],
+        "mv": ["addi {rd}, {rs}, 0"],
+        "not": ["xori {rd}, {rs}, -1"],
+        "neg": ["sub {rd}, x0, {rs}"],
+        "negw": ["subw {rd}, x0, {rs}"],
+        "sext.w": ["addiw {rd}, {rs}, 0"],
+        "seqz": ["sltiu {rd}, {rs}, 1"],
+        "snez": ["sltu {rd}, x0, {rs}"],
+        "sgtz": ["slt {rd}, x0, {rs}"],
+        "sltz": ["slt {rd}, {rs}, x0"],
+        "fmv.s": ["fsgnj.s {rd}, {rs}, {rs}"],
+        "fabs.s": ["fsgnjx.s {rd}, {rs}, {rs}"],
+        "fneg.s": ["fsgnjn.s {rd}, {rs}, {rs}"],
+        "fmv.d": ["fsgnj.d {rd}, {rs}, {rs}"],
+        "fabs.d": ["fsgnjx.d {rd}, {rs}, {rs}"],
+        "fneg.d": ["fsgnjn.d {rd}, {rs}, {rs}"],
+        "beqz": ["beq {rs}, x0, {offset}"],
+        "bnez": ["bne {rs}, x0, {offset}"],
+        "blez": ["bge x0, {rs}, {offset}"],
+        "bgez": ["bge {rs}, x0, {offset}"],
+        "bltz": ["blt {rs}, x0, {offset}"],
+        "bgtz": ["blt x0, {rs}, {offset}"],
+        "bgt": ["blt {rt}, {rs}, {offset}"],
+        "ble": ["bge {rt}, {rs}, {offset}"],
+        "bgtu": ["bltu {rt}, {rs}, {offset}"],
+        "bleu": ["bgeu {rt}, {rs}, {offset}"],
+        "j": ["jal x0, {offset}"],
+        "jal": ["jal x1, {offset}"],
+        "jr": ["jalr x0, {rs}, 0"],
+        "jalr": ["jalr x1, {rs}, 0"],
+        "ret": ["jalr x0, x1, 0"],
+        "call": ["auipc x1, {offset}[31:12]", "jalr x1, x1, {offset}[11:0]"],
+        "tail": ["auipc x6, {offset}[31:12]", "jalr x0, x6, {offset}[11:0]"]
+    },
     "r_type_instructions": {
         "add": ["0000000", "000", "0110011"],
         "sub": ["0100000", "000", "0110011"],
@@ -53,3 +101,7 @@
         "jal": "1101111"
     }
 }
+
+
+
+
