@@ -48,35 +48,29 @@ class InstructionParser:
                 return self.encoder.encode_r_type(instr, rd, rs1, rs2)
 
             elif instr in self.encoder.instructions['i_type_instructions']:
-                                   #CASO ESPECIAL
-                ##################################################################################################################
-                if instr == "jalr":
-                    # Expresión regular para manejar el formato '100(x2)'
-                    match = re.match(r"(-?\d+)\s*\(\s*(\w+)\s*\)", parts[1])
-                    if not match:
-                        raise ValueError(f"❌ ERROR: Sintaxis inválida en '{line}'. Formato esperado: 'jalr rd, offset(rs1)'.")
-
-                    offset, rs1 = match.groups()  # Extrae el inmediato y rs1
-                    print(f"📌 Procesando instrucción JALR: instr={instr}, rd={rd}, rs1={rs1}, imm={offset}")
-
-                    return self.encoder.encode_i_type(instr, rd, rs1, offset)
                 #####################################################################################################################           
-                elif len(parts) < 3:
+                if len(parts) < 3:
                     raise ValueError(f"Formato inválido: {line}")
                 rs1 = parts[1].strip()
                 imm = parts[2].strip()
                 return self.encoder.encode_i_type(instr, rd, rs1, imm)
 
             elif instr in self.encoder.instructions['i_type_load_instructions']:
-                if len(parts) < 2:
-                    raise ValueError(f"Formato inválido: {line}")
-                
+                print("ENCONTRADA")
+                                # Expresión regular para manejar 'jalr x0, rs, 0'
+                # Expresión regular para manejar 'jalr rd, rs, label'
+                match = re.match(r"jalr\s+(\w+),\s*(\w+),\s*(\w+)", line)
+                if match:
+                    rd, rs1, label = match.groups()  # Extrae los registros y la etiqueta
+                    return self.encoder.encode_i_type_load(instr, rd, rs1, label)
+
+                else:
                 # Expresión regular para manejar el formato '100(x2)'
-                match = re.match(r"(-?\d+)\s*\(\s*(\w+)\s*\)", parts[1])
-                if not match:
-                    raise ValueError(f"Formato inválido para instrucción de carga: {line}")
-                offset, rs1 = match.groups()
-                return self.encoder.encode_i_type_load(instr, rd, rs1, offset)
+                    match = re.match(r"(-?\d+)\s*\(\s*(\w+)\s*\)", parts[1])
+                    if not match:
+                        raise ValueError(f"Formato inválido para instrucción de carga: {line}")
+                    offset, rs1 = match.groups()
+                    return self.encoder.encode_i_type_load(instr, rd, rs1, offset)
 
             elif instr in self.encoder.instructions['s_type_instructions']:
                 if len(parts) < 2:
