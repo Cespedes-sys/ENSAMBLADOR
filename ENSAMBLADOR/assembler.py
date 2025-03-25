@@ -29,7 +29,6 @@ def first_pass(input_file):
 
     return labels
 
-
 def process_file(input_file, output_file):
     """Procesa el archivo ensamblador, expande pseudoinstrucciones y convierte a binario."""
     labels = first_pass(input_file)
@@ -46,36 +45,37 @@ def process_file(input_file, output_file):
 
             try:
                 expanded_lines = parse_pseudo_instruction(line)
+                print("LINEAS EXPANDIDAS")
                 print(expanded_lines)
                 for expanded_line in expanded_lines:
-                    parts = expanded_line.split()
-                    instr = parts[0].lower()
+                    # Verificar si expanded_line es una lista o una sola instrucción
+                    if isinstance(expanded_line, list):
+                        # Si es una lista, procesar cada instrucción por separado
+                        for single_line in expanded_line:
+                            binary = parser.process_line(single_line)
+                            if binary:
+                                outfile.write(binary + "\n")
+                    else:
+                        # Si es una sola instrucción, procesar directamente
+                        parts = expanded_line.split()
+                        instr = parts[0].lower()
 
-                    # Si la instrucción es de salto y usa una etiqueta, calcular el offset
-                    if instr in branch_instructions and len(parts) > 1:
-                        label = parts[-1]
-                        if label in labels:
-                            offset = (labels[label] - address_counter) // 2  # Offset relativo
-                            parts[-1] = str(offset)
-                            expanded_line = ' '.join(parts)
+                        # Si la instrucción es de salto y usa una etiqueta, calcular el offset
+                        if instr in branch_instructions and len(parts) > 1:
+                            label = parts[-1]
+                            if label in labels:
+                                offset = (labels[label] - address_counter) // 2  # Offset relativo
+                                parts[-1] = str(offset)
+                                expanded_line = ' '.join(parts)
 
-                    else:  
-                        print(expanded_lines)
                         # Reemplazar etiquetas en instrucciones básicas
                         for label, address in labels.items():
                             expanded_line = expanded_line.replace(label, str(address))
 
-                        if isinstance(expanded_line, list) and len(expanded_line) > 1:
-                            for single_line in expanded_line:
-                                binary = parser.process_line(single_line)
-                                if binary:
-                                    outfile.write(binary + "\n")
-                        else:
-                            binary = parser.process_line(expanded_line)
-                            if binary:
-                                outfile.write(binary + "\n")
-
-
+                        # Procesar la instrucción y escribir en archivo
+                        binary = parser.process_line(expanded_line)
+                        if binary:
+                            outfile.write(binary + "\n")
 
             except ValueError as e:
                 outfile.write(f"Error en la línea: {line} - {str(e)}\n")
