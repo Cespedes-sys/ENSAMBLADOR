@@ -21,30 +21,67 @@ class InstructionEncoder:
         rs2 = format(self.parse_register(rs2), '05b')
         return f"{funct7} {rs2} {rs1} {funct3} {rd} {opcode}"
 
-    # Codificación tipo I
     def encode_i_type(self, instr, rd, rs1, imm):
-        funct3, opcode = self.instructions['i_type_instructions'][instr]
-        rd = format(self.parse_register(rd), '05b')
-        rs1 = format(self.parse_register(rs1), '05b')
-        imm = format(int(imm), '012b')  # Convertir el inmediato a 12 bits
-        return f"{imm} {rs1} {funct3} {rd} {opcode}"
+        if instr in self.instructions['i_type_instructions']:
+            funct3, opcode = self.instructions['i_type_instructions'][instr]
+        elif instr in self.instructions['i_type_load_instructions']:
+            funct3, opcode = self.instructions['i_type_load_instructions'][instr]
+        else:
+            raise ValueError(f"Instrucción desconocida: {instr}")
+
+        rd_bin = format(self.parse_register(rd), '05b')
+        rs1_bin = format(self.parse_register(rs1), '05b')
+
+        # Convertir inmediato a entero
+        imm = int(imm)
+
+        # Aplicar complemento a dos si es negativo
+        if imm < 0:
+            imm = (1 << 12) + imm  # Convierte el número negativo a complemento a dos
+
+        # Asegurar que el valor es de 12 bits y eliminar signos negativos
+        imm_bin = format(imm & 0xFFF, '012b')  # Fuerza a 12 bits y evita signos negativos
+
+        return f"{imm_bin} {rs1_bin} {funct3} {rd_bin} {opcode}"
+
+
+
+
+
+
+
+
 
     # Codificación tipo S (almacenamiento)
 # Codificación tipo S (Store)
-    def encode_s_type(self, instr, rs1, rs2, imm):
-        funct3, opcode = self.instructions['s_type_instructions'][instr]
-        imm = int(imm)  # Convertir inmediato a entero
-        imm_bin = format(imm, '012b')  # Convertir a 12 bits
+    def encode_s_type(self, instr, rs2, rs1, imm):
+        if instr in self.instructions['s_type_instructions']:
+            funct3, opcode = self.instructions['s_type_instructions'][instr]
+        else:
+            raise ValueError(f"Instrucción desconocida: {instr}")
 
-        # Extraer partes del inmediato
-        imm_11_5 = imm_bin[:7]   # Bits 11-5
-        imm_4_0 = imm_bin[7:]    # Bits 4-0
-
-        rs1_bin = format(self.parse_register(rs1), '05b')
         rs2_bin = format(self.parse_register(rs2), '05b')
+        rs1_bin = format(self.parse_register(rs1), '05b')
 
-        # Construcción del binario final
-        instruction_bin = f"{imm_11_5} {rs2_bin} {rs1_bin} {funct3} {imm_4_0} {opcode}"
+        # Convertir inmediato a entero
+        imm = int(imm)
+
+        # Si el inmediato es negativo, convertir a complemento a dos (12 bits)
+        if imm < 0:
+            imm = (1 << 12) + imm
+
+        # Asegurar que el inmediato es de 12 bits
+        imm_bin = format(imm & 0xFFF, '012b')
+
+        # Para instrucciones S-type, el inmediato se divide en dos partes:
+        # imm[11:5] y imm[4:0]
+        imm_hi = imm_bin[:7]   # bits 11 a 5
+        imm_lo = imm_bin[7:]   # bits 4 a 0
+
+        return f"{imm_hi} {rs2_bin} {rs1_bin} {funct3} {imm_lo} {opcode}"
+
+
+
         
         return instruction_bin
     def encode_b_type(self, instr, rs1, rs2, imm):
@@ -100,9 +137,9 @@ class InstructionEncoder:
 
         # ✅ Extraer los bits según el formato J-Type
         imm_20   = imm_bin[0]      # Bit 20 (MSB - bit de signo)
-        imm_10_1 = imm_bin[1:11]   # Bits 10-1
-        imm_11   = imm_bin[11]     # Bit 11
-        imm_19_12 = imm_bin[12:20] # Bits 19-12
+        imm_10_1 = imm_bin[10:20]   # Bits 10-1
+        imm_11   = imm_bin[9]     # Bit 11
+        imm_19_12 = imm_bin[1:9] # Bits 19-12
 
         # ✅ Convertir `rd` a 5 bits binarios
         rd_bin = format(rd_int, '05b')
