@@ -1,0 +1,450 @@
+Ejemplos de funcionamiento
+
+ejemplo 1
+ARCHIVO DE ENTRADA:
+
+# sum_n.asm
+# Computes the sum of the first n numbers
+# input: a0 = n
+# output: t0 = sum(1..n)
+
+li a0, 5        # n = 5
+li t0, 0        # sum = 0
+li t1, 1        # i = 1
+loop:
+    bgt t1, a0, end # if i > n, break
+    add t0, t0, t1  # sum += i
+    addi t1, t1, 1  # i++
+    beq zero,zero, loop  # jump to loop
+end:
+    nop  # result is in t0
+
+ARCHIVO DE SALIDA:
+000000000101 00000 000 01010 0010011
+000000000000 00000 000 00101 0010011
+000000000001 00000 000 00110 0010011
+0000000 00110 01010 100 01000 1100011
+0000000 00110 00101 000 00101 0110011
+000000000001 00110 000 00110 0010011
+1111111 00000 00000 000 11011 1100011
+000000000000 00000 000 00000 0010011
+
+
+EJEMPLO 2
+ARCHIVO DE ENTRADA
+
+_start:
+    # Load max positive 32-bit integer (2147483647)
+    lui a0, 524287      # Load upper 20 bits (524287 * 4096 = 2147479552)
+    addi a0, a0, 4095   # Add lower 12 bits (4095), total = 2147483647
+
+    # Load 1
+    addi a1, zero, 1  
+
+    # This should cause overflow: 2147483647 + 1 = -2147483648 (two's complement wrap-around)
+    add a2, a0, a1  
+
+    # Load min negative 32-bit integer (-2147483648)
+    lui a0, 524288      # Load upper 20 bits (524288 * 4096 = 2147483648, interpreted as -2147483648 in two's complement)
+
+    # Load -1
+    addi a1, zero, -1  
+
+    # This should cause underflow: -2147483648 - 1 = 2147483647 (two's complement wrap-around)
+    add a3, a0, a1  
+
+    # Exit program
+    addi a7, zero, 93   # System call for exit
+    ecall
+
+ARCHIVO DE SALIDA
+
+01111111111111111111 01010 0110111
+111111111111 01010 000 01010 0010011
+000000000001 00000 000 01011 0010011
+0000000 01011 01010 000 01100 0110011
+10000000000000000000 01010 0110111
+-00000000001 00000 000 01011 0010011
+0000000 01011 01010 000 01101 0110011
+000001011101 00000 000 10001 0010011
+000000000000 00000 000 00000 1110011
+
+EJEMPLO 3 
+ARCHIVO DE ENTRADA
+
+# Recursive Fibonacci function
+# Arguments:
+#   a0 = n (the Fibonacci number index)
+# Returns:
+#   a0 = fib(n)
+fib:
+    addi sp, sp, -16      # Allocate stack space
+    sw ra, 12(sp)         # Save return address
+    sw a0, 8(sp)          # Save n
+
+    # Base case: if n <= 0, return 0
+    bge a0, zero, check_n1  # If n >= 0, check if n == 1
+    addi a0, zero, 0        # Return 0
+    beq zero, zero, fib_return  # Unconditional jump
+
+check_n1:
+    addi t0, zero, 1
+    bne a0, t0, recursive_case  # If n != 1, go to recursive case
+    addi a0, zero, 1            # Return 1
+    beq zero, zero, fib_return   # Unconditional jump
+
+recursive_case:
+    addi a0, a0, -1       # Compute n-1
+    addi sp, sp, -4       # Allocate space for recursive call
+    sw a0, 0(sp)          # Store argument
+    addi t1, ra, 0        # Save return address
+    addi t2, sp, 0        # Save stack pointer
+
+    # Manual call to fib(n-1)
+    addi sp, sp, -4       # Push return address
+    sw t1, 0(sp)
+    jalr t1, zero, fib    # Jump to fib
+    lw t1, 0(sp)          # Restore return address
+    addi sp, sp, 4        # Pop return address
+
+    lw a1, 0(t2)          # Restore n-1 argument
+    addi sp, sp, 4        # Pop argument
+    sw a0, 4(sp)          # Store fib(n-1)
+
+    lw a0, 8(sp)          # Restore original n
+    addi a0, a0, -2       # Compute n-2
+    addi sp, sp, -4       # Allocate space for recursive call
+    sw a0, 0(sp)          # Store argument
+
+    # Manual call to fib(n-2)
+    addi sp, sp, -4       # Push return address
+    sw t1, 0(sp)
+    jalr t1, zero, fib    # Jump to fib
+    lw t1, 0(sp)          # Restore return address
+    addi sp, sp, 4        # Pop return address
+
+    lw t1, 4(sp)          # Retrieve fib(n-1)
+    add a0, a0, t1        # Compute fib(n) = fib(n-1) + fib(n-2)
+    addi sp, sp, 4        # Pop argument
+
+fib_return:
+    lw ra, 12(sp)         # Restore return address
+    addi sp, sp, 16       # Free stack space
+    jalr zero, ra, 0      # Return
+
+# Program Entry Point
+_start:
+    addi a0, zero, 10     # Compute fib(10)
+    addi sp, sp, -4       # Allocate stack space
+    sw ra, 0(sp)          # Save return address
+
+    jalr ra, zero, fib    # Call fib function
+
+    lw ra, 0(sp)          # Restore return address
+    addi sp, sp, 4        # Free stack space
+
+    # Exit program
+    lui a7, 0             # Load upper bits of syscall number (zeroing out)
+    addi a7, a7, 93       # syscall for exit
+    ecall
+
+ARCHIVO DE SALIDA
+-00000010000 00010 000 00010 0010011
+0000000 00001 00010 010 01100 0100011
+0000000 01010 00010 010 01000 0100011
+0000000 00000 01010 101 00110 1100011
+000000000000 00000 000 01010 0010011
+0000000 00000 00000 000 11101 1100011
+000000000001 00000 000 00101 0010011
+0000000 00101 01010 001 00110 1100011
+000000000001 00000 000 01010 0010011
+0000000 00000 00000 000 10101 1100011
+-00000000001 01010 000 01010 0010011
+-00000000100 00010 000 00010 0010011
+0000000 01010 00010 010 00000 0100011
+000000000000 00001 000 00110 0010011
+000000000000 00010 000 00111 0010011
+-00000000100 00010 000 00010 0010011
+0000000 00110 00010 010 00000 0100011
+000000000000 00000 000 00110 1100111
+000000000000 00010 010 00110 0000011
+000000000100 00010 000 00010 0010011
+000000000000 00111 010 01011 0000011
+000000000100 00010 000 00010 0010011
+0000000 01010 00010 010 00100 0100011
+000000001000 00010 010 01010 0000011
+-00000000010 01010 000 01010 0010011
+-00000000100 00010 000 00010 0010011
+0000000 01010 00010 010 00000 0100011
+-00000000100 00010 000 00010 0010011
+0000000 00110 00010 010 00000 0100011
+000000000000 00000 000 00110 1100111
+000000000000 00010 010 00110 0000011
+000000000100 00010 000 00010 0010011
+000000000100 00010 010 00110 0000011
+0000000 00110 01010 000 01010 0110011
+000000000100 00010 000 00010 0010011
+000000001100 00010 010 00001 0000011
+000000010000 00010 000 00010 0010011
+000000000000 00001 000 00000 1100111
+000000001010 00000 000 01010 0010011
+-00000000100 00010 000 00010 0010011
+0000000 00001 00010 010 00000 0100011
+000000000000 00000 000 00001 1100111
+000000000000 00010 010 00001 0000011
+000000000100 00010 000 00010 0010011
+00000000000000000000 10001 0110111
+000001011101 10001 000 10001 0010011
+000000000000 00000 000 00000 1110011
+
+EJEMPLO 4
+ARCHIVO DE ENTRADA
+# Function: multiply(a, b)
+# Implements a × b using repeated addition (RV32I-compliant)
+multiply:
+    addi t0, zero, 0    # t0 = 0 (Result)
+    addi t1, zero, 0    # t1 = 0 (Counter)
+
+mul_loop:
+    beq t1, a1, mul_done  # If counter == b, return result
+    add t0, t0, a0        # t0 += a (Repeated addition)
+    addi t1, t1, 1        # Increment counter
+    jal 0, mul_loop  # Repeat
+
+mul_done:
+    add a0, t0, zero  # Store result in a0
+    jr ra      # Return
+
+_start:
+    # Load n (Fibonacci index)
+    addi a0, zero, 10  # Example: Compute Fib(10)
+
+    # Load base Fibonacci matrix: [[1, 1], [1, 0]]
+    addi t0, zero, 1   # t0 = 1 (M[0][0])
+    addi t1, zero, 1   # t1 = 1 (M[0][1])
+    addi t2, zero, 1   # t2 = 1 (M[1][0])
+    addi t3, zero, 0   # t3 = 0 (M[1][1])
+
+    # Load identity matrix (result matrix)
+    addi t4, zero, 1   # t4 = 1 (R[0][0])
+    addi t5, zero, 0   # t5 = 0 (R[0][1])
+    addi t6, zero, 0   # t6 = 0 (R[1][0])
+    addi t6, zero, 1   # t7 = 1 (R[1][1])
+
+    # If n <= 1, return n
+    ble a0, zero, done # If n <= 0, return 0
+    addi a1, zero, 1   # If n == 1, return 1
+    beq a0, a1, done
+
+exp_loop:
+    # If n is odd, multiply result matrix by base matrix
+    andi t6, a0, 1
+    beq t6, zero, skip_mult
+
+    # Matrix multiplication R = R * M
+    add a1, t0, zero  
+    jal 1, multiply
+    add t6, a0, zero
+
+    add a0, t5, zero  
+    add a1, t2, zero
+    jal 1, multiply
+    add t6, t6, a0  
+
+    add a0, t4, zero
+    add a1, t1, zero
+    jal 1, multiply
+    add t6, a0, zero
+
+    add a0, t5, zero
+    add a1, t3, zero
+    jal 1, multiply
+    add t6, t6, a0  
+
+    add a0, t6, zero
+    add a1, t0, zero
+    jal 1, multiply
+    add t6, a0, zero
+
+    add a0, t6, zero
+    add a1, t2, zero
+    jal 1, multiply
+    add t6, t6, a0  
+
+    add a0, t6, zero
+    add a1, t1, zero
+    jal 1, multiply
+    add t6, a0, zero
+
+    add a0, t6, zero
+    add a1, t3, zero
+    jal 1, multiply
+    add t6, t6, a0  
+
+    # Store results
+    add t4, t6, zero
+    add t5, t6, zero
+    add t6, t6, zero
+    add t6, t6, zero
+
+skip_mult:
+    # Square the matrix M = M * M
+    add a0, t0, zero
+    add a1, t0, zero
+    jal 1, multiply
+    add t5, a0, zero
+
+    add a0, t1, zero
+    add a1, t2, zero
+    jal 1, multiply
+    add t5, t4, a0  
+
+    add a0, t0, zero
+    add a1, t1, zero
+    jal 1, multiply
+    add t5, a0, zero
+
+    add a0, t1, zero
+    add a1, t3, zero
+    jal 1, multiply
+    add t5, t5, a0  
+
+    add a0, t2, zero
+    add a1, t0, zero
+    jal 1, multiply
+    add t5, a0, zero
+
+    add a0, t3, zero
+    add a1, t2, zero
+    jal 1, multiply
+    add t5, t5, a0  
+
+    add a0, t2, zero
+    add a1, t1, zero
+    jal 1, multiply
+    add t5, a0, zero
+
+    add a0, t3, zero
+    add a1, t3, zero
+    jal 1, multiply
+    add t5, t5, a0  
+
+    # Store results
+    add t0, t5, zero
+    add t1, t5, zero
+    add t2, t5, zero
+    add t3, t3, zero
+
+    # Divide n by 2
+    srli a0, a0, 1
+    bne a0, zero, exp_loop
+
+done:
+    # The Fibonacci number is in R[1][0] (t6)
+    add a0, t6, zero  # Store result in a0
+
+    # Exit program
+    addi a7, zero, 93
+    ecall
+
+ARCHIVO DE SALIDA
+
+000000000000 00000 000 00101 0010011
+000000000000 00000 000 00110 0010011
+0000000 01011 00110 000 01000 1100011
+0000000 01010 00101 000 00101 0110011
+000000000001 00110 000 00110 0010011
+00000000000000000000 00001 1101111
+0000000 00000 00101 000 01010 0110011
+000000000000 00001 000 00000 1100111
+000000001010 00000 000 01010 0010011
+000000000001 00000 000 00101 0010011
+000000000001 00000 000 00110 0010011
+000000000001 00000 000 00111 0010011
+000000000000 00000 000 11100 0010011
+000000000001 00000 000 11101 0010011
+000000000000 00000 000 11110 0010011
+000000000000 00000 000 11111 0010011
+000000000001 00000 000 11111 0010011
+0000010 01010 00000 101 11100 1100011
+000000000001 00000 000 01011 0010011
+0000010 01011 01010 000 11000 1100011
+000000000001 01010 111 11111 0010011
+0000001 00000 11111 000 01000 1100011
+0000000 00000 00101 000 01011 0110011
+00000000000000000000 00001 1101111
+0000000 00000 01010 000 11111 0110011
+0000000 00000 11110 000 01010 0110011
+0000000 00000 00111 000 01011 0110011
+00000000000000000000 00001 1101111
+0000000 01010 11111 000 11111 0110011
+0000000 00000 11101 000 01010 0110011
+0000000 00000 00110 000 01011 0110011
+00000000000000000000 00001 1101111
+0000000 00000 01010 000 11111 0110011
+0000000 00000 11110 000 01010 0110011
+0000000 00000 11100 000 01011 0110011
+00000000000000000000 00001 1101111
+0000000 01010 11111 000 11111 0110011
+0000000 00000 11111 000 01010 0110011
+0000000 00000 00101 000 01011 0110011
+00000000000000000000 00001 1101111
+0000000 00000 01010 000 11111 0110011
+0000000 00000 11111 000 01010 0110011
+0000000 00000 00111 000 01011 0110011
+00000000000000000000 00001 1101111
+0000000 01010 11111 000 11111 0110011
+0000000 00000 11111 000 01010 0110011
+0000000 00000 00110 000 01011 0110011
+00000000000000000000 00001 1101111
+0000000 00000 01010 000 11111 0110011
+0000000 00000 11111 000 01010 0110011
+0000000 00000 11100 000 01011 0110011
+00000000000000000000 00001 1101111
+0000000 01010 11111 000 11111 0110011
+0000000 00000 11111 000 11101 0110011
+0000000 00000 11111 000 11110 0110011
+0000000 00000 11111 000 11111 0110011
+0000000 00000 11111 000 11111 0110011
+0000000 00000 00101 000 01010 0110011
+0000000 00000 00101 000 01011 0110011
+00000000000000000000 00001 1101111
+0000000 00000 01010 000 11110 0110011
+0000000 00000 00110 000 01010 0110011
+0000000 00000 00111 000 01011 0110011
+00000000000000000000 00001 1101111
+0000000 01010 11101 000 11110 0110011
+0000000 00000 00101 000 01010 0110011
+0000000 00000 00110 000 01011 0110011
+00000000000000000000 00001 1101111
+0000000 00000 01010 000 11110 0110011
+0000000 00000 00110 000 01010 0110011
+0000000 00000 11100 000 01011 0110011
+00000000000000000000 00001 1101111
+0000000 01010 11110 000 11110 0110011
+0000000 00000 00111 000 01010 0110011
+0000000 00000 00101 000 01011 0110011
+00000000000000000000 00001 1101111
+0000000 00000 01010 000 11110 0110011
+0000000 00000 11100 000 01010 0110011
+0000000 00000 00111 000 01011 0110011
+00000000000000000000 00001 1101111
+0000000 01010 11110 000 11110 0110011
+0000000 00000 00111 000 01010 0110011
+0000000 00000 00110 000 01011 0110011
+00000000000000000000 00001 1101111
+0000000 00000 01010 000 11110 0110011
+0000000 00000 11100 000 01010 0110011
+0000000 00000 11100 000 01011 0110011
+00000000000000000000 00001 1101111
+0000000 01010 11110 000 11110 0110011
+0000000 00000 11110 000 00101 0110011
+0000000 00000 11110 000 00110 0110011
+0000000 00000 11110 000 00111 0110011
+0000000 00000 11100 000 11100 0110011
+000000000001 01010 101 01010 0010011
+1111101 00000 01010 001 01101 1100011
+0000000 00000 11111 000 01010 0110011
+000001011101 00000 000 10001 0010011
+000000000000 00000 000 00000 1110011
+
